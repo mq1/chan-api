@@ -13,3 +13,4 @@
 
 chan-api
 go.sum
+generated.go
