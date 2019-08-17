@@ -24,6 +24,7 @@ type Thread {
     name: String
     subject: String
     comment: String
+    fileHash: String!
 }
 
 type Reply {
@@ -31,6 +32,7 @@ type Reply {
     thread: Thread!
     name: String
     comment: String
+    fileHash: String
 }
 
 type Query {
@@ -48,12 +50,14 @@ input NewThread {
     name: String
     subject: String
     comment: String
+    fileHash: String!
 }
 
 input NewReply {
     threadUUID: ID!
     name: String
     comment: String
+    fileHash: String
 }
 
 type Mutation {

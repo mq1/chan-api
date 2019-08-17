@@ -16,14 +16,17 @@
 
 package database
 
-import uuid "github.com/satori/go.uuid"
+import (
+	uuid "github.com/satori/go.uuid"
+)
 
 type Thread struct {
-	UUID    uuid.UUID
-	Board   Board
-	Name    string
-	Subject string
-	Comment string
+	UUID     uuid.UUID
+	Board    Board
+	Name     string
+	Subject  string
+	Comment  string
+	FileHash string
 }
 
 type NewThread struct {
@@ -31,6 +34,7 @@ type NewThread struct {
 	Name      string
 	Subject   string
 	Comment   string
+	FileHash  string
 }
 
 func CreateThreadTable() error {
@@ -40,7 +44,8 @@ func CreateThreadTable() error {
 			board_uuid uuid NOT NULL references board(uuid),
 			name text,
 			subject text,
-			comment text
+			comment text,
+			file_hash text
 		)
 	`)
 
@@ -49,14 +54,14 @@ func CreateThreadTable() error {
 
 func Threads() ([]*Thread, error) {
 	var threads []*Thread
-	rows, err := db.Query(`SELECT uuid, board_uuid, name, subject, comment FROM thread`)
+	rows, err := db.Query(`SELECT uuid, board_uuid, name, subject, comment, file_hash FROM thread`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var thread Thread
-		if err := rows.Scan(&thread.UUID, &thread.Board.UUID, &thread.Name, &thread.Subject, &thread.Comment); err != nil {
+		if err := rows.Scan(&thread.UUID, &thread.Board.UUID, &thread.Name, &thread.Subject, &thread.Comment, &thread.FileHash); err != nil {
 			return nil, err
 		}
 		threads = append(threads, &thread)
@@ -72,13 +77,15 @@ func CreateThread(newThread NewThread) (*Thread, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	thread := Thread{
-		Board:   Board{UUID: uuid},
-		Name:    newThread.Name,
-		Subject: newThread.Subject,
-		Comment: newThread.Comment,
+		Board:    Board{UUID: uuid},
+		Name:     newThread.Name,
+		Subject:  newThread.Subject,
+		Comment:  newThread.Comment,
+		FileHash: newThread.FileHash,
 	}
-	err = db.QueryRow(`INSERT INTO thread (board_uuid, name, subject, comment) VALUES ($1, $2, $3, $4) RETURNING uuid`, thread.Board.UUID, thread.Name, thread.Subject, thread.Comment).Scan(&thread.UUID)
+	err = db.QueryRow(`INSERT INTO thread (board_uuid, name, subject, comment, file_hash) VALUES ($1, $2, $3, $4, $5) RETURNING uuid`, thread.Board.UUID, thread.Name, thread.Subject, thread.Comment, thread.FileHash).Scan(&thread.UUID)
 	if err != nil {
 		return new(Thread), err
 	}

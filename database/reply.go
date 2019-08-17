@@ -16,19 +16,23 @@
 
 package database
 
-import uuid "github.com/satori/go.uuid"
+import (
+	uuid "github.com/satori/go.uuid"
+)
 
 type Reply struct {
-	UUID    uuid.UUID
-	Thread  Thread
-	Name    string
-	Comment string
+	UUID     uuid.UUID
+	Thread   Thread
+	Name     string
+	Comment  string
+	FileHash string
 }
 
 type NewReply struct {
 	ThreadUUID string
 	Name       string
 	Comment    string
+	FileHash   string
 }
 
 func CreateReplyTable() error {
@@ -36,7 +40,8 @@ func CreateReplyTable() error {
 		CREATE TABLE IF NOT EXISTS reply (
 			uuid uuid NOT NULL DEFAULT uuid_generate_v1() PRIMARY KEY,
 			name text,
-			comment text
+			comment text,
+			file_hash text
 		)
 	`)
 
@@ -45,14 +50,14 @@ func CreateReplyTable() error {
 
 func Replies() ([]*Reply, error) {
 	var replies []*Reply
-	rows, err := db.Query(`SELECT uuid, thread_uuid, name, comment FROM reply`)
+	rows, err := db.Query(`SELECT uuid, thread_uuid, name, comment, file_hash FROM reply`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var reply Reply
-		if err := rows.Scan(&reply.UUID, &reply.Thread.UUID, &reply.Name, &reply.Comment); err != nil {
+		if err := rows.Scan(&reply.UUID, &reply.Thread.UUID, &reply.Name, &reply.Comment, &reply.FileHash); err != nil {
 			return nil, err
 		}
 		replies = append(replies, &reply)
@@ -68,12 +73,14 @@ func CreateReply(newReply NewReply) (*Reply, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	reply := Reply{
-		Thread:  Thread{UUID: uuid},
-		Name:    newReply.Name,
-		Comment: newReply.Comment,
+		Thread:   Thread{UUID: uuid},
+		Name:     newReply.Name,
+		Comment:  newReply.Comment,
+		FileHash: newReply.FileHash,
 	}
-	err = db.QueryRow(`INSERT INTO reply (thread_uuid, name, comment) VALUES ($1, $2, $3, $4) RETURNING uuid`, reply.Thread.UUID, reply.Name, reply.Comment).Scan(&reply.UUID)
+	err = db.QueryRow(`INSERT INTO reply (thread_uuid, name, comment, file_hash) VALUES ($1, $2, $3, $4, $5) RETURNING uuid`, reply.Thread.UUID, reply.Name, reply.Comment, reply.FileHash).Scan(&reply.UUID)
 	if err != nil {
 		return new(Reply), err
 	}
